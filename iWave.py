@@ -1,33 +1,22 @@
-import requests
 import openpyxl
-from pprint import pprint
 
-def getHeaders():
-    headers = {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json'
-    }
-    return headers
 
-def getUser():
-    url = 'https://pro.iwave.com/pro360#search:Overview_search:165659229'
-    response = requests.get(url=url, headers=getHeaders(), auth=('glasere@purdue.edu', '5zqe4grI!!!!'))
-    print(response.content)
-
-#reorganizes the PROfile names into new columns - first name and last name
+class donor:
+    def __init__(self, first, last, address, city, state, zip):
+        self.first = first
+        self.last = last
+        self.address = address
+        self.city = city
+        self.state = state
+        self.zip = zip
+        
 def excelOps(loc):
+    #open excel doc and specific sheet
     wb = openpyxl.load_workbook(filename = loc)
     ws = wb.get_sheet_by_name("AmplifyOriginal")
 
-    headers = {}
-    row = 1
-    column = 1
-    header = ws.cell(row=row,column=column).value
-
-    while header:
-        headers[header] = column
-        column += 1
-        header = ws.cell(row=row,column=column).value
+    #create dictionary of column headers names and the index of the column
+    headers = getColumnKey(ws)
 
     firstColumn = headers['*First Name']
     lastColumn = headers['*Last Name']
@@ -36,25 +25,14 @@ def excelOps(loc):
     name = ws.cell(row=row,column=nameColumn).value
     delim = ' '
 
+    #Split the name column into separate first and last name columns
     while name:
         first = delim.join(name.split(' ')[:-1])
-        print(first)
         ws.cell(row=row,column=firstColumn).value = first
         ws.cell(row=row,column=lastColumn).value = name.split(' ')[-1]
         row += 1
         name = ws.cell(row=row,column=nameColumn).value
 
-
-
-        #read the csv
-        #enumerate the rows, so that you can
-        #get the row index for the xlsx
-            #Assuming space separated,
-            #Split the row to cells (column)
-            #row = row[0].split()
-            #Access the particular cell and assign
-            #the value from the csv row
-    #save the csb file
     wb.save('AmplifyUpdated.xlsx')
 
 def getColumnKey(ws):
@@ -71,14 +49,17 @@ def getColumnKey(ws):
     return headers
 
 def mergeInfo(loc1, loc2):
+    #open excel file and sheets - one that data is being read from and one that data will be added to
     wb = openpyxl.load_workbook(filename = loc1)
     ws = wb.get_sheet_by_name("Sheet1")
     wb2 = openpyxl.load_workbook(filename = loc2)
     ws2 = wb2.get_sheet_by_name("AmplifyOriginal")
 
+    #create dictionary of column headers names and the index of the column for both sheets
     key = getColumnKey(ws)
     key2 = getColumnKey(ws2)
 
+    #read the information from sheet 2 into a dictionary of class donor
     donors = []
     firstColumn = key2['*First Name']
     row = 2
@@ -88,7 +69,6 @@ def mergeInfo(loc1, loc2):
         donors.append(donor(name, ws2.cell(row=row,column=key2['*Last Name']).value, ws2.cell(row=row,column=key2['Address1']).value, ws2.cell(row=row,column=key2['*City']).value, ws2.cell(row=row,column=key2['*State/Province']).value, ws2.cell(row=row,column=key2['ZIP/Postal Code']).value))
         row += 1
         name = ws2.cell(row=row,column=firstColumn).value
-
 
     firstColumn = key['First Name']
     lastColumn = key['Last Name']
@@ -102,6 +82,7 @@ def mergeInfo(loc1, loc2):
     row = 2
     name = ws.cell(row=row,column=firstColumn).value
 
+    #add the information from each member of the donor dictionary into the excel sheet being written to
     while name:
         for d in donors:
             if d.first == name and d.last == ws.cell(row=row,column=lastColumn).value:
@@ -115,23 +96,12 @@ def mergeInfo(loc1, loc2):
         row += 1
         name = ws.cell(row=row,column=firstColumn).value
 
-    wb.save('PostcardUpdated.xlsx')    
+    wb.save('PostcardUpdated.xlsx')
 
-
-class donor:
-    def __init__(self, first, last, address, city, state, zip):
-        self.first = first
-        self.last = last
-        self.address = address
-        self.city = city
-        self.state = state
-        self.zip = zip
 
 if __name__ == "__main__":
-    #getUser()
-    # Give the location of the file 
-    #loc = "../../Documents/AmplifyOriginal.xlsx"
-    #excelOps(loc)
+    loc = "../../Documents/AmplifyOriginal.xlsx"
+    excelOps(loc)
     loc1 = "../../Documents/PostcardOriginal.xlsx"
     loc2 = "AmplifyUpdated.xlsx"
     mergeInfo(loc1, loc2)
